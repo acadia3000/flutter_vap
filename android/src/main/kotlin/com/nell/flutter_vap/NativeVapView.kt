@@ -23,7 +23,12 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 
-internal class NativeVapView(binaryMessenger: BinaryMessenger, context: Context, id: Int, creationParams: Map<String?, Any?>?) : MethodChannel.MethodCallHandler, PlatformView {
+internal class NativeVapView(
+    binaryMessenger: BinaryMessenger,
+    context: Context,
+    id: Int,
+    creationParams: Map<String?, Any?>?
+) : MethodChannel.MethodCallHandler, PlatformView {
     private val mContext: Context = context
 
     private val vapView: AnimView = AnimView(context)
@@ -35,24 +40,31 @@ internal class NativeVapView(binaryMessenger: BinaryMessenger, context: Context,
         vapView.setAnimListener(object : IAnimListener {
             override fun onFailed(errorType: Int, errorMsg: String?) {
                 GlobalScope.launch(Dispatchers.Main) {
-                    methodResult?.success(HashMap<String, String>().apply {
-                        put("status", "failure")
-                        put("errorMsg", errorMsg ?: "unknown error")
-                    })
-
+                    try {
+                        methodResult?.success(HashMap<String, String>().apply {
+                            put("status", "failure")
+                            put("errorMsg", errorMsg ?: "unknown error")
+                        })
+                    } catch (e: Exception) {
+                        // nothing to do
+                    }
                 }
             }
 
             override fun onVideoComplete() {
                 GlobalScope.launch(Dispatchers.Main) {
-                    methodResult?.success(HashMap<String, String>().apply {
-                        put("status", "complete")
-                    })
+                    try {
+                        methodResult?.success(HashMap<String, String>().apply {
+                            put("status", "complete")
+                        })
+                    } catch (e: Exception) {
+                        // nothing to do
+                    }
                 }
             }
 
             override fun onVideoDestroy() {
-             
+
             }
 
             override fun onVideoRender(frameIndex: Int, config: AnimConfig?) {
@@ -83,11 +95,13 @@ internal class NativeVapView(binaryMessenger: BinaryMessenger, context: Context,
                     vapView.startPlay(File(it))
                 }
             }
+
             "playAsset" -> {
                 call.argument<String>("asset")?.let {
                     vapView.startPlay(mContext.assets, "flutter_assets/$it")
                 }
             }
+
             "stop" -> {
                 vapView.stopPlay()
             }
